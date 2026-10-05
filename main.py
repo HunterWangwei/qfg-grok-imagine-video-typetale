@@ -6,6 +6,8 @@ QFG Grok Imagine Video 插件。
 和 grok-imagine-video 模型。API Key 由插件设置页保存。
 """
 
+import base64
+import mimetypes
 import os
 import sys
 import time
@@ -91,6 +93,17 @@ def _get_first_frame(context):
             if candidate and os.path.isfile(candidate):
                 return candidate
     return None
+
+
+def _image_as_data_url(path):
+    """将软件提供的本地首帧编码为 New API 支持的 Data URL。"""
+    if not path or not os.path.isfile(path):
+        return None
+
+    mime_type = mimetypes.guess_type(path)[0] or "image/png"
+    with open(path, "rb") as image_file:
+        encoded = base64.b64encode(image_file.read()).decode("ascii")
+    return f"data:{mime_type};base64,{encoded}"
 
 
 def _extract_task_id(response_data):
@@ -246,10 +259,11 @@ def generate(context):
     }
     first_frame = _get_first_frame(context)
     if first_frame:
-        print(
-            "[QFG Grok] 检测到本地首帧图片，但官方接口 reference_images "
-            "只接受可访问的 URL，本次将按文生视频提交。"
-        )
+        image_data_url = _image_as_data_url(first_frame)
+        if not image_data_url:
+            raise Exception("PLUGIN_ERROR:::首帧图片读取或 Base64 编码失败")
+        payload["image"] = {"url": image_data_url}
+        print(f"[QFG Grok] 已添加首帧图片: {first_frame}")
 
     headers = {
         "Authorization": f"Bearer {api_key}",

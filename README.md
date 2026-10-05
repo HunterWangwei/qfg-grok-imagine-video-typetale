@@ -12,6 +12,7 @@
 - 在插件设置页输入并本地保存 QFG API Key。
 - QFG API 地址固定为 `https://qfgapi.com`，不可修改。
 - 可设置模型、画幅比例、视频时长和分辨率。
+- 有首帧图片时，自动编码为 Base64 Data URL 并按图生视频方式提交。
 - 支持异步任务创建、状态轮询、进度回调和视频下载。
 - 成功后将 MP4 保存到当前项目输出目录。
 
@@ -59,7 +60,10 @@ GET  https://qfgapi.com/v1/videos/{request_id}/content
   "prompt": "A cinematic shot of a city at sunset",
   "duration": 8,
   "aspect_ratio": "16:9",
-  "resolution": "720p"
+  "resolution": "720p",
+  "image": {
+    "url": "data:image/png;base64,iVBORw0KGgoAAAANS..."
+  }
 }
 ```
 
@@ -80,9 +84,19 @@ Authorization: Bearer YOUR_QFG_API_KEY
 | 视频时长 | 1 至 15 秒，默认 8 秒 |
 | 分辨率 | `480p`、`720p`、`1080p`；经典 `grok-imagine-video` 不支持 `1080p` |
 
-## 图片输入限制
+## 图片输入
 
-New API 官方格式的 `reference_images` 需要提供公网可访问的图片 URL。字字动画当前传给插件的是本地首帧路径，插件不会把本地文件上传到第三方图床，因此当前版本按文生视频提交任务。
+字字动画传给插件的是本地图片路径，例如 `context["first_frame_path"]`。插件会读取该文件并编码为 Base64 Data URL，按 New API 官方格式写入 `image.url`：
+
+```json
+{
+  "image": {
+    "url": "data:image/png;base64,图片Base64内容"
+  }
+}
+```
+
+因此不需要将首帧上传到第三方图床。当前版本使用首帧作为单张图生视频输入；普通参考图和尾帧尚未映射到 `reference_images`、`last_frame` 或 `keyframes` 字段。
 
 ## 安全说明
 
