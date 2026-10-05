@@ -5,6 +5,8 @@
 - `grok-imagine-video-1.5`
 - `grok-imagine-video`
 
+仓库地址：[HunterWangwei/qfg-grok-imagine-video-typetale](https://github.com/HunterWangwei/qfg-grok-imagine-video-typetale)
+
 ## 功能
 
 - 在插件设置页输入并本地保存 QFG API Key。
