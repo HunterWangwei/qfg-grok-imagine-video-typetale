@@ -7,6 +7,7 @@ QFG Grok Imagine Video 插件。
 """
 
 import base64
+import json
 import mimetypes
 import os
 import sys
@@ -104,6 +105,24 @@ def _image_as_data_url(path):
     with open(path, "rb") as image_file:
         encoded = base64.b64encode(image_file.read()).decode("ascii")
     return f"data:{mime_type};base64,{encoded}"
+
+
+def _log_request_payload(payload):
+    """打印可用于排查的请求体，同时避免日志中出现整段图片 Base64。"""
+    log_payload = dict(payload)
+    image = log_payload.get("image")
+    image_url = image.get("url") if isinstance(image, dict) else None
+    if isinstance(image_url, str) and image_url.startswith("data:"):
+        header, separator, encoded = image_url.partition(",")
+        log_payload["image"] = {
+            "url": f"{header},...[已省略 {len(encoded)} 个 Base64 字符]",
+            "base64_chars": len(encoded) if separator else 0,
+            "estimated_bytes": (len(encoded) * 3) // 4 if separator else 0,
+        }
+    print(
+        "[QFG Grok] 实际请求体（图片 Base64 已省略）: "
+        + json.dumps(log_payload, ensure_ascii=False)
+    )
 
 
 def _extract_task_id(response_data):
@@ -272,6 +291,7 @@ def generate(context):
     print(f"[QFG Grok] 模型: {model}")
     print(f"[QFG Grok] 画幅: {aspect_ratio}，分辨率: {resolution}，时长: {duration}s")
     print(f"[QFG Grok] API Key: 已设置({len(api_key)}字符)")
+    _log_request_payload(payload)
 
     try:
         if progress_callback:
