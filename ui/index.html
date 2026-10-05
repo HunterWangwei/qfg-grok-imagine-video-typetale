@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>QFG Grok Imagine Video</title>
+  <link rel="stylesheet" href="../../../plugin-sdk.css">
+  <style>
+    .api-key-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .api-key-wrapper input {
+      flex: 1;
+      padding-right: 38px;
+    }
+    .toggle-eye {
+      position: absolute;
+      right: 6px;
+      border: 0;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 15px;
+      line-height: 1;
+      padding: 5px;
+    }
+    .toggle-eye:hover {
+      color: var(--text-primary);
+    }
+    .hint-text {
+      color: var(--text-muted);
+      font-size: 11px;
+      line-height: 1.55;
+      margin-top: 8px;
+    }
+    .fixed-value {
+      color: var(--text-secondary);
+      line-height: 30px;
+    }
+    .repository-link {
+      display: inline-block;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+  <h3>QFG Grok Imagine Video</h3>
+  <p class="hint-text">使用 QFG API 生成 Grok Imagine Video 视频。</p>
+  <hr>
+
+  <div class="form-row">
+    <label class="form-label">API 地址</label>
+    <div class="form-control">
+      <span class="fixed-value">https://qfgapi.com</span>
+    </div>
+  </div>
+
+  <div class="form-row">
+    <label class="form-label">API Key</label>
+    <div class="form-control">
+      <div class="api-key-wrapper">
+        <input type="password" id="apiKeyInput" placeholder="请输入 QFG API Key">
+        <button class="toggle-eye" id="toggleEye" type="button" title="显示或隐藏 API Key">显示</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-row">
+    <label class="form-label">模型</label>
+    <div class="form-control">
+      <select id="modelSelect">
+        <option value="grok-imagine-video-1.5">grok-imagine-video-1.5</option>
+        <option value="grok-imagine-video">grok-imagine-video</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="form-row">
+    <label class="form-label">画幅比例</label>
+    <div class="form-control">
+      <select id="aspectRatioSelect">
+        <option value="16:9">16:9</option>
+        <option value="9:16">9:16</option>
+        <option value="1:1">1:1</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="form-row">
+    <label class="form-label">视频时长(秒)</label>
+    <div class="form-control">
+      <input type="number" id="durationInput" min="1" max="15" step="1" value="8">
+    </div>
+  </div>
+
+  <div class="form-row">
+    <label class="form-label">分辨率</label>
+    <div class="form-control">
+      <select id="resolutionSelect">
+        <option value="480p">480p</option>
+        <option value="720p">720p</option>
+        <option value="1080p">1080p</option>
+      </select>
+    </div>
+  </div>
+
+  <p class="hint-text">
+    使用 QFG / New API 的 xAI 官方格式提交视频任务。官方格式的参考图需要公网可访问的 URL，本插件的本地首帧不会上传。<br>
+    API Key 仅保存到本机插件配置。软件未与 QFG 建立合作关系，请自行确认账户、额度与模型参数。
+  </p>
+  <a class="repository-link" href="https://github.com/PLACEHOLDER/qfg-grok-imagine-video-typetale" target="_blank" rel="noopener noreferrer">插件开源仓库</a>
+
+  <script src="../../../plugin-sdk.js"></script>
+  <script>
+    var apiKeyInput = document.getElementById('apiKeyInput')
+    var toggleEye = document.getElementById('toggleEye')
+    var modelSelect = document.getElementById('modelSelect')
+    var aspectRatioSelect = document.getElementById('aspectRatioSelect')
+    var durationInput = document.getElementById('durationInput')
+    var resolutionSelect = document.getElementById('resolutionSelect')
+
+    function setSelectValue(element, value) {
+      var target = String(value)
+      for (var i = 0; i < element.options.length; i++) {
+        if (element.options[i].value === target) {
+          element.selectedIndex = i
+          return
+        }
+      }
+    }
+
+    toggleEye.addEventListener('click', function () {
+      var hidden = apiKeyInput.type === 'password'
+      apiKeyInput.type = hidden ? 'text' : 'password'
+      toggleEye.textContent = hidden ? '隐藏' : '显示'
+    })
+    apiKeyInput.addEventListener('change', function () {
+      PluginSDK.saveParam('api_key', apiKeyInput.value.trim())
+    })
+    modelSelect.addEventListener('change', function () {
+      PluginSDK.saveParam('model', modelSelect.value)
+      updateResolutionOptions()
+    })
+    aspectRatioSelect.addEventListener('change', function () {
+      PluginSDK.saveParam('aspect_ratio', aspectRatioSelect.value)
+    })
+    durationInput.addEventListener('change', function () {
+      PluginSDK.saveParam('duration', parseInt(durationInput.value, 10) || 8)
+    })
+    resolutionSelect.addEventListener('change', function () {
+      PluginSDK.saveParam('resolution', resolutionSelect.value)
+    })
+
+    function updateResolutionOptions() {
+      var classicModel = modelSelect.value === 'grok-imagine-video'
+      var keepValue = resolutionSelect.value
+      for (var i = 0; i < resolutionSelect.options.length; i++) {
+        resolutionSelect.options[i].disabled =
+          classicModel && resolutionSelect.options[i].value === '1080p'
+      }
+      if (classicModel && keepValue === '1080p') {
+        resolutionSelect.value = '720p'
+        PluginSDK.saveParam('resolution', '720p')
+      }
+    }
+
+    PluginSDK.onReady(function (params) {
+      if (params.api_key) apiKeyInput.value = params.api_key
+      if (params.model) setSelectValue(modelSelect, params.model)
+      if (params.aspect_ratio) setSelectValue(aspectRatioSelect, params.aspect_ratio)
+      if (params.duration != null) durationInput.value = params.duration
+      if (params.resolution) setSelectValue(resolutionSelect, params.resolution)
+      updateResolutionOptions()
+    })
+  </script>
+</body>
+</html>
